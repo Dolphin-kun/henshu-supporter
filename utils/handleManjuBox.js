@@ -28,12 +28,14 @@ async function handleManjuBox(feed, discordClient, config) {
       };
 
       const dbGuilds = await guildsCollection.find().toArray();
-      console.log("取得したギルドデータ:", dbGuilds);
-      console.log(`guildId: ${guildId}, 設定:`, setting);
-
 
       for (const guildData of dbGuilds) {
-        const guildId = guildData._id || guildData.guildId;
+        const guildId = guildData.guildId;
+        if (!guildId) {
+          console.warn("guildId が存在しません:", guildData);
+          continue;
+        }
+
         const setting = guildData.settings;
         if (!setting || !setting.manjuSummonerChannel) continue;
 
