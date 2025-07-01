@@ -1,11 +1,12 @@
 const { MongoClient } = require("mongodb");
+const { getMongoClient } = require("./mongoClient");
 
 async function handleYMM4Site(feed, discordClient, config) {
   const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
   const mongo = new MongoClient(uri);
 
   try {
-    await mongo.connect();
+    const mongo = await getMongoClient();
     const db = mongo.db("YMM4-Discord-Bot");
     const siteCollection = db.collection("ymm4info");
 
