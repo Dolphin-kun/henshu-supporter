@@ -41,7 +41,7 @@ async function handleManjuBox(feed, discordClient, config) {
         if (!channel) continue;
 
         const content = (setting.manjuSummonerChannel === config.manjuBoxChannelId)
-          ? "<@&1233086532815028267>"
+          ? "test"
           : undefined;
 
         await channel.send({ content, embeds: [embed] });
