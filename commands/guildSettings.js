@@ -43,6 +43,11 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   firstPage: false,
 
+  /**
+   * 
+   * @param {*} client 
+   * @param {import('discord.js').Interaction} interaction 
+   */
   async execute(client, interaction) {
     const guildId = interaction.guildId;
     const defaultConfig = require('../guild-config.json');

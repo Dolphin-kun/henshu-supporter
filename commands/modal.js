@@ -31,7 +31,7 @@ module.exports = {
     client.on(Events.InteractionCreate, async interaction => {
       if (!interaction.isModalSubmit()) return;
       if (interaction.customId === 'myModal') {
-        const channel = interaction.guild.channels.cache.get(config.administratorChannel);
+        const channel = interaction.guild.channels.cache.get(config.administratorChannelId);
         const sendTitle = interaction.fields.getTextInputValue('title');
         const sendContent = interaction.fields.getTextInputValue('content');
         
