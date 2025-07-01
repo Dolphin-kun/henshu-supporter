@@ -50,11 +50,12 @@ module.exports = {
       );
     };
 
-    const message = await interaction.reply({
+    await interaction.reply({
       embeds: [getEmbed(currentPage)],
-      components: [getButtons(currentPage)],
-      fetchReply: true,
+      components: [getButtons(currentPage)]
     });
+    
+    const message = await interaction.fetchReply();
 
     const collector = message.createMessageComponentCollector({ time: 60000 });
 
