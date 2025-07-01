@@ -59,7 +59,7 @@ async function handleManjuBox(feed, discordClient, config) {
         };
 
         if (setting.manjuSummonerChannel === config.manjuBoxChannelId) {
-          messagePayload.content = "test";
+          messagePayload.content = "<@&1233086532815028267>";
         }
 
         try {

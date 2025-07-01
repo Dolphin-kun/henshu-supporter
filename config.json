@@ -1,9 +1,11 @@
 {
-  "clientId": "1389422635393224764",
-  "guildId": "1348916807230292030",
-  "welcomeChannelId": "1348916807993659434",
-  "administratorChannelId":"1348916807993659434",
-  "newsChannelId": "1348916807993659434",
-  "manjuBoxChannelId": "1348916807993659434",
-  "YMM4SiteChannelId": "1348916807993659434"
+  "clientId": "1166273584596009000",
+  "guildId": "1232145636367798326",
+
+  "welcomeChannelId": "1233066314067742730",
+  "administratorChannelId":"1251826511485468713",
+
+  "newsChannelId": "1233081728046862426",
+  "manjuBoxChannelId": "1233081728046862426",
+  "YMM4SiteChannelId": "1291403869686861918"
 }

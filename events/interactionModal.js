@@ -20,7 +20,7 @@ module.exports = {
     if (!channel) {
       return interaction.reply({
         content: '管理者チャンネルが見つかりません。',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
