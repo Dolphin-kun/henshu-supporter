@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 })
 
 // サーバーを起動
-app.listen(3000, () => {
+app.listen(8000, () => {
     console.log(`サーバーを開きました`);
   });
   
