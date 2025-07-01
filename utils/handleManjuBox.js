@@ -28,6 +28,9 @@ async function handleManjuBox(feed, discordClient, config) {
       };
 
       const dbGuilds = await guildsCollection.find().toArray();
+      console.log("取得したギルドデータ:", dbGuilds);
+      console.log(`guildId: ${guildId}, 設定:`, setting);
+
 
       for (const guildData of dbGuilds) {
         const guildId = guildData._id || guildData.guildId;
