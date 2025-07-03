@@ -57,11 +57,25 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 
 	try {
-		await command.execute(client,interaction);
+		await command.execute(client, interaction);
 	} catch (error) {
 		console.error(error);
-		await interaction.reply({ content: 'コマンドがありません', ephemeral: true });
+
+		if (interaction.deferred || interaction.replied) {
+			try {
+				await interaction.followUp({ content: 'コマンドがありません', ephemeral: true });
+			} catch (e) {
+				console.error('followUp failed:', e);
+			}
+		} else {
+			try {
+				await interaction.reply({ content: 'コマンドがありません', ephemeral: true });
+			} catch (e) {
+				console.error('reply failed:', e);
+			}
 	}
+}
+
 });
 
 client.login(process.env.TOKEN);
