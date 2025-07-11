@@ -12,7 +12,7 @@ module.exports = {
     if (!guild) {
       return interaction.reply({
         content: 'この操作はサーバー内でのみ使用できます。',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 

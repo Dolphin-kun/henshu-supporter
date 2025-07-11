@@ -19,7 +19,7 @@ module.exports = {
     const data = await res.json();
     const plugins = Object.values(data);
 
-    if (!plugins[newPage]) return interaction.reply({ content: '⚠️ ページが存在しません。', ephemeral: true });
+    if (!plugins[newPage]) return interaction.reply({ content: '⚠️ ページが存在しません。', flags: MessageFlags.Ephemeral });
 
     const embed = new EmbedBuilder()
       .setTitle(plugins[newPage].title)

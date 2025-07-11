@@ -18,7 +18,7 @@ module.exports = {
     const plugins = Object.values(data);
 
     if (plugins.length === 0) {
-      return await interaction.reply({ content: 'プラグインが見つかりませんでした。', ephemeral: true });
+      return await interaction.reply({ content: 'プラグインが見つかりませんでした。', flags: MessageFlags.Ephemeral });
     }
 
     let currentPage = 0;
@@ -61,7 +61,7 @@ module.exports = {
 
     collector.on('collect', async i => {
       if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: 'このボタンはあなた専用です。', ephemeral: true });
+        return i.reply({ content: 'このボタンはあなた専用です。', flags: MessageFlags.Ephemeral });
       }
 
       if (i.customId === 'prev' && currentPage > 0) currentPage--;

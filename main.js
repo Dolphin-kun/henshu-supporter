@@ -1,4 +1,4 @@
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, MessageFlags } = require('discord.js');
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -60,7 +60,7 @@ client.on(Events.InteractionCreate, async interaction => {
 		await command.execute(client,interaction);
 	} catch (error) {
 		console.error(error);
-		await interaction.reply({ content: 'コマンドがありません', ephemeral: true });
+		await interaction.reply({ content: 'コマンドがありません', flags: MessageFlags.Ephemeral });
 	}
 });
 
