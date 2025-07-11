@@ -1,4 +1,4 @@
-const { EmbedBuilder, ButtonStyle, ActionRowBuilder, ButtonBuilder, Events } = require('discord.js');
+const { EmbedBuilder, ButtonStyle, ActionRowBuilder, ButtonBuilder, Events, MessageFlags } = require('discord.js');
 const fetch = require('node-fetch');
 
 module.exports = {
