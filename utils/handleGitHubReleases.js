@@ -47,7 +47,7 @@ async function handleGitHubReleases(client) {
 
           const embed = new EmbedBuilder()
             .setColor('Blue')
-            .setTitle(`新しいリリース: ${repoInfo.repo} プラグイン`)
+            .setTitle(`更新: ${repoInfo.repo} プラグイン`)
             .setDescription(`**[${latestRelease.name || latestRelease.tag_name}](${latestRelease.html_url})** がリリースされました！`)
             .setTimestamp(new Date(latestRelease.published_at));
 

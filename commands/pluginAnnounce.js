@@ -230,7 +230,7 @@ module.exports = {
 
                     const embed = new EmbedBuilder()
                         .setColor('Yellow')
-                        .setTitle(`${initialRelease.repo} プラグインが公開されました！`)
+                        .setTitle(`${repo} プラグインが公開されました！`)
                         .setDescription(`**[${initialRelease.name || initialRelease.tag_name}](${initialRelease.html_url})** がリリースされました！`)
                         .setThumbnail(initialRelease.author.avatar_url)
                         .setTimestamp(new Date(initialRelease.published_at));
