@@ -5,7 +5,7 @@ const fetch = require('node-fetch');
 const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri);
 
-async function addPluginToGlobalList(owner, repo) {
+async function addPluginAndGetInitialInfo(owner, repo) {
     await client.connect();
     const db = client.db('YMM4-Discord-Bot');
     const collection = db.collection('watched_plugins');
@@ -15,15 +15,16 @@ async function addPluginToGlobalList(owner, repo) {
         return { status: 'exists', release: null };
     }
 
-    let latestRelease = null;
+    const readmeContent = await getReadmeContent(owner, repo);
+
+    let latestReleaseId = null;
     try {
         const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
-            headers: {
-                headers: { "user-agent": "YMM4Info-DiscordBot" }
-            }
+            headers: { "user-agent": "YMM4Info-DiscordBot" }
         });
         if (response.ok) {
-            latestRelease = await response.json();
+            const latestRelease = await releaseResponse.json();
+            latestReleaseId = latestRelease.id;
         }
     } catch (error) {
         console.error(`[GitHub API] ${owner}/${repo} の最新リリース取得に失敗しました:`, error);
@@ -32,10 +33,10 @@ async function addPluginToGlobalList(owner, repo) {
     await collection.insertOne({
         owner,
         repo,
-        lastReleaseId: latestRelease ? latestRelease.id : null,
+        lastReleaseId: latestReleaseId,
         repoUrl: `https://github.com/${owner}/${repo}`
     });
-    return { status: 'added', release: latestRelease };
+    return { status: 'added', readme: readmeContent };
 }
 
 async function getAnnounceChannelIds() {
@@ -64,6 +65,21 @@ async function removePluginFromGlobalList(owner, repo) {
     return result.deletedCount > 0; // 削除できたら true を返す
 }
 
+async function getReadmeContent(owner, repo) {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
+            headers: { "user-agent": "YMM4Info-DiscordBot" }
+        });
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        // Base64でエンコードされた内容をデコードして返す
+        return Buffer.from(data.content, 'base64').toString('utf8');
+    } catch (error) {
+        console.error(`[GitHub API] ${owner}/${repo} のREADME取得に失敗しました:`, error);
+        return null;
+    }
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -214,7 +230,7 @@ module.exports = {
         try {
             // --- 登録処理 ---
             if (interaction.options.getSubcommand() === '登録') {
-                const result = await addPluginToGlobalList(owner, repo);
+                const result = await addPluginAndGetInitialInfo(owner, repo);
 
                 if (result.status === 'exists') {
                     await interaction.editReply(`プラグイン「${owner}/${repo}」は既に監視リストに登録されています。`);
@@ -224,21 +240,19 @@ module.exports = {
                 await interaction.editReply(`プラグイン「${owner}/${repo}」を全サーバー共通の監視リストに追加しました。`);
 
                 // 初回リリース情報があれば、全チャンネルにアナウンス
-                if (result.release) {
-                    const initialRelease = result.release;
+                if (result.readme) {
                     const allChannelIds = await getAnnounceChannelIds();
+
+                    const descriptionText = result.readme.length > 2000 
+                        ? `${result.readme.substring(0, 2000)}...\n\n[続きを読む](${githubUrl})` 
+                        : result.readme;
 
                     const embed = new EmbedBuilder()
                         .setColor('Yellow')
                         .setTitle(`${repo} プラグインが公開されました！`)
-                        .setDescription(`**[${initialRelease.name || initialRelease.tag_name}](${initialRelease.html_url})** がリリースされました！`)
-                        .setThumbnail(initialRelease.author.avatar_url)
-                        .setTimestamp(new Date(initialRelease.published_at));
-
-                    if (initialRelease.body) {
-                        const bodyText = initialRelease.body.length > 1020 ? `${initialRelease.body.substring(0, 1020)}...` : initialRelease.body;
-                        embed.addFields({ name: '概要', value: bodyText });
-                    }
+                        .setURL(githubUrl)
+                        .setDescription(descriptionText)
+                        .addFields({ name: 'リポジトリ', value: `[${owner}/${repo}](${githubUrl})` })
 
                     // 全ての通知用チャンネルに一斉送信
                     for (const channelId of allChannelIds) {
