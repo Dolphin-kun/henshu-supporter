@@ -20,10 +20,13 @@ async function addPluginAndGetInitialInfo(owner, repo) {
     let latestReleaseId = null;
     try {
         const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
-            headers: { "user-agent": "YMM4Info-DiscordBot" }
+            headers: {
+                "user-agent": "YMM4Info-DiscordBot",
+                "Authorization": `Bearer ${process.env.GITHUB_PAT}`
+            }
         });
         if (response.ok) {
-            const latestRelease = await releaseResponse.json();
+            const latestRelease = await response.json();
             latestReleaseId = latestRelease.id;
         }
     } catch (error) {
@@ -33,7 +36,7 @@ async function addPluginAndGetInitialInfo(owner, repo) {
     await collection.insertOne({
         owner,
         repo,
-        lastReleaseId: latestReleaseId,
+        lastReleaseId: latestReleaseId ? latestReleaseId: null,
         repoUrl: `https://github.com/${owner}/${repo}`
     });
     return { status: 'added', readme: readmeContent };
@@ -68,7 +71,10 @@ async function removePluginFromGlobalList(owner, repo) {
 async function getReadmeContent(owner, repo) {
     try {
         const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
-            headers: { "user-agent": "YMM4Info-DiscordBot" }
+            headers: {
+                "user-agent": "YMM4Info-DiscordBot",
+                "Authorization": `Bearer ${process.env.GITHUB_PAT}`
+            }
         });
         if (!response.ok) return null;
 
@@ -174,7 +180,7 @@ module.exports = {
             };
 
             const message = await interaction.reply(generateMessage(currentPage));
-            const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button | ComponentType.StringSelect, time: 120000 });
+            const collector = message.createMessageComponentCollector({ time: 120000 });
 
             collector.on('collect', async i => {
                 if (i.user.id !== interaction.user.id) {
@@ -243,8 +249,8 @@ module.exports = {
                 if (result.readme) {
                     const allChannelIds = await getAnnounceChannelIds();
 
-                    const descriptionText = result.readme.length > 2000 
-                        ? `${result.readme.substring(0, 2000)}...\n\n[続きを読む](${githubUrl})` 
+                    const descriptionText = result.readme.length > 2000
+                        ? `${result.readme.substring(0, 2000)}...\n\n[続きを読む](${githubUrl})`
                         : result.readme;
 
                     const embed = new EmbedBuilder()
