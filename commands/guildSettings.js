@@ -40,6 +40,15 @@ module.exports = {
           option.setName('manju_summoner_channel')
             .setDescription('チャンネルを指定してください')
             .setRequired(true)))
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('プラグイン更新通知チャンネル')
+        .setDescription('プラグインの更新情報を共有するチャンネルを変更します')
+        .addChannelOption(option =>
+          option.setName('channel')
+            .setDescription('通知を送信するチャンネルを指定してください')
+            .setRequired(true)
+        ))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   firstPage: false,
 
@@ -72,16 +81,19 @@ module.exports = {
         ? `<#${dbData.settings.manjuSummonerChannel}>`
         : "設定されていません";
 
+      const pluginAnnounceChannelId = dbData.settings.pluginAnnounceChannel
+        ? `<#${dbData.settings.pluginAnnounceChannel}>`
+        : "設定されていません";
+
       const embed = new EmbedBuilder()
         .setColor("Blue")
         .setTitle("サーバー設定")
         .setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
         .setDescription("1ページ目")
-        .addFields({
-          name: "饅頭遣いのおもちゃ箱通知チャンネル",
-          value: manjuSummonerChannelId,
-          inline: true,
-        });
+        .addFields(
+          { name: "饅頭遣いのおもちゃ箱通知チャンネル", value: manjuSummonerChannelId, inline: true },
+          { name: "プラグイン更新通知チャンネル", value: pluginAnnounceChannelId, inline: true }
+        );
 
       await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
@@ -95,5 +107,17 @@ module.exports = {
 
       await interaction.reply({ content: `データベースに保存しました`, flags: MessageFlags.Ephemeral });
     }
+
+    if (interaction.options.getSubcommand() === "プラグイン更新通知チャンネル") {
+            const channel = interaction.options.getChannel("channel");
+            
+            if (!dbData.settings) {
+                dbData.settings = {};
+            }
+            dbData.settings.pluginAnnounceChannel = channel.id;
+
+            await updateGuildSettings(guildId, dbData);
+            await interaction.reply({ content: `プラグイン更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
+        }
   }
 };

@@ -4,6 +4,7 @@ const parser = new Parser();
 const config = require("../config.json");
 const { handleManjuBox } = require("../utils/handleManjuBox");
 const { handleYMM4Site } = require("../utils/handleYMM4Site");
+const { handleGitHubReleases } = require("../utils/handleGitHubReleases");
 
 module.exports = {
 	name: Events.ClientReady,
@@ -26,6 +27,12 @@ module.exports = {
 
 			await handleYMM4Site(feedYMMSite, client, config);
 			await handleManjuBox(feedManjuBox, client, config);
-		}, 6000);
+		}, 60000);
+
+		// GitHubリリースのチェック（APIレート制限を避けるため、間隔を長く設定）
+		setInterval(async () => {
+			await handleGitHubReleases(client);
+		}, 10 * 60 * 1000); // 10分ごと (10 * 60秒 * 1000ミリ秒)
+		await handleGitHubReleases(client);
 	}
 };

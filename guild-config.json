@@ -2,6 +2,7 @@
   "guildId": "",
   
   "settings": {
-    "manjuSummonerChannel":""
+    "manjuSummonerChannel":"",
+    "pluginAnnounceChannel": ""
   }
 }
