@@ -6,20 +6,25 @@ const fetch = require('node-fetch');
 const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
 const mongoClient = new MongoClient(uri);
 
+const APP_STATE_COLLECTION = 'app_state';
+const RELEASE_LIST_DOC_ID = 'latest_github_release_list';
+
 /**
  * 登録されているGitHubリポジトリの最新リリースを確認し、更新があれば通知します。
  * list APIで更新を確認後、detail APIで詳細を取得します。
  * @param {import('discord.js').Client} client Discordクライアント
  */
 async function handleGitHubReleases(client) {
-  console.log('GitHubリリースの更新をチェックします (manjubox.net API)...');
+  console.log('GitHubリリースの更新をチェックします (全プラグイン対象)...');
   try {
     await mongoClient.connect();
     const db = mongoClient.db('YMM4-Discord-Bot');
-    const pluginsCollection = db.collection('watched_plugins');
+    const appStateCollection = db.collection(APP_STATE_COLLECTION);
     const settingsCollection = db.collection('settings');
+    // ▼削除: 'watched_plugins'コレクションの参照を削除
+    // const pluginsCollection = db.collection('watched_plugins'); 
 
-    // 通知を送信するチャンネルIDを取得
+    // --- 1. 通知先のチャンネルを取得 ---
     const allGuildSettings = await settingsCollection.find(
       { 'settings.pluginAnnounceChannel': { $exists: true, $ne: null } }
     ).toArray();
@@ -30,76 +35,80 @@ async function handleGitHubReleases(client) {
       return;
     }
 
-    // Manjūbox APIから全プラグインの最新リリース情報を取得
+    // --- 2. 現在のリリースリストをAPIから取得 ---
     const listResponse = await fetch('https://manjubox.net/api/ymm4plugins/github/list');
     if (!listResponse.ok) {
       console.error(`[Manjūbox List API] データの取得に失敗: ${listResponse.statusText}`);
       return;
     }
-    const allLatestReleases = await listResponse.json();
+    const currentList = await listResponse.json();
 
-    // 各リリース情報を確認
-    for (const releaseInfo of allLatestReleases) {
-      if (releaseInfo.prerelease) {
+    // --- 3. 前回保存したリリースリストをDBから取得 ---
+    const previousState = await appStateCollection.findOne({ _id: RELEASE_LIST_DOC_ID });
+    const previousList = previousState ? previousState.data : [];
+
+    // --- 4. 初回実行時の処理 ---
+    if (previousList.length === 0) {
+      console.log('初回チェックのため、現在のリリースリストをDBに保存します。');
+      await appStateCollection.updateOne(
+        { _id: RELEASE_LIST_DOC_ID },
+        { $set: { data: currentList, updatedAt: new Date() } },
+        { upsert: true }
+      );
+      return;
+    }
+
+    // --- 5. 前回と今回のリストを比較して、更新があったものを探す ---
+    const updatedReleases = [];
+    const previousMap = new Map(previousList.map(item => [`${item.user}/${item.repo}`, item]));
+
+    // ▼削除: 'watched_plugins'から監視リストを作成する処理を削除
+    // const watchedPlugins = await pluginsCollection.find({}).toArray();
+    // const watchedSet = new Set(watchedPlugins.map(p => `${p.owner}/${p.repo}`));
+
+    for (const currentItem of currentList) {
+      const repoKey = `${currentItem.user}/${currentItem.repo}`;
+      
+      // ▼変更: プレリリースかどうかのみをチェックするように条件を単純化
+      if (currentItem.prerelease) {
         continue;
       }
-      
-      try {
-        const dbRepoInfo = await pluginsCollection.findOne({ owner: releaseInfo.user, repo: releaseInfo.repo });
-        if (!dbRepoInfo) {
-          continue;
-        }
 
-        const apiPublishedAt = new Date(releaseInfo.published_at);
-        const dbPublishedAt = dbRepoInfo.lastPublishedAt ? new Date(dbRepoInfo.lastPublishedAt) : null;
+      const previousItem = previousMap.get(repoKey);
 
-        // 新しいリリースがあり、DBの情報が古い場合に通知
-        if (!dbPublishedAt || apiPublishedAt > dbPublishedAt) {
-          console.log(`新しいリリースを発見: ${releaseInfo.user}/${releaseInfo.repo} - ${releaseInfo.name}`);
-
-          // --- ▼ここから追加の処理 ---
+      // 新規追加された、または公開日時が新しいリリースを更新対象とする
+      if (!previousItem || new Date(currentItem.published_at) > new Date(previousItem.published_at)) {
+        console.log(`更新を検出: ${repoKey} - ${currentItem.name}`);
+        updatedReleases.push(currentItem);
+      }
+    }
+    
+    // --- 6. 更新があったリリースを通知 ---
+    if (updatedReleases.length > 0) {
+      for (const releaseInfo of updatedReleases) {
+        try {
+          // 詳細情報を取得 (リリースノート本文など)
+          const detailResponse = await fetch(`https://manjubox.net/api/ymm4plugins/github/detail/${releaseInfo.user}/${releaseInfo.repo}`);
           let releaseBody = null;
-          try {
-            // detail APIから詳細情報を取得
-            const detailResponse = await fetch(`https://manjubox.net/api/ymm4plugins/github/detail/${releaseInfo.user}/${releaseInfo.repo}`);
-            if (detailResponse.ok) {
-              const detailInfo = await detailResponse.json();
-              // APIは配列を返すため、最新のリリースである先頭の要素からbodyを取得
-              if (detailInfo && detailInfo.length > 0 && detailInfo[0].body) {
-                releaseBody = detailInfo[0].body;
-              }
-            } else {
-              console.error(`[Manjūbox Detail API] ${releaseInfo.user}/${releaseInfo.repo} の詳細取得に失敗: ${detailResponse.statusText}`);
+          if (detailResponse.ok) {
+            const detailInfo = await detailResponse.json();
+            if (detailInfo && detailInfo.length > 0) {
+              releaseBody = detailInfo[0].body;
             }
-          } catch (err) {
-            console.error(`[Manjūbox Detail API] ${releaseInfo.user}/${releaseInfo.repo} の詳細取得中にエラーが発生:`, err);
           }
-          // --- ▲ここまで追加の処理 ---
 
+          // Embedを作成
           const releaseUrl = `https://github.com/${releaseInfo.user}/${releaseInfo.repo}/releases/tag/${releaseInfo.tag_name}`;
-          
           const embed = new EmbedBuilder()
             .setColor('Blue')
             .setTitle(`更新: ${releaseInfo.repo} プラグイン`)
             .setDescription(`**[${releaseInfo.name || releaseInfo.tag_name}](${releaseUrl})** がリリースされました！`)
-            .setTimestamp(apiPublishedAt);
+            .setTimestamp(new Date(releaseInfo.published_at));
 
-          // 概要(リリースノート)があればEmbedに追加
           if (releaseBody) {
-            // DiscordのEmbedの文字数制限(1024)を超えないように調整
-            const bodyText = releaseBody.length > 1020
-              ? `${releaseBody.substring(0, 1020)}...`
-              : releaseBody;
+            const bodyText = releaseBody.length > 1020 ? `${releaseBody.substring(0, 1020)}...` : releaseBody;
             embed.addFields({ name: '概要', value: bodyText });
           }
-
-          // ダウンロードリンクをフィールドに追加
-          /*
-          embed.addFields({ 
-            name: '直接ダウンロード', 
-            value: `[${releaseInfo.file_name}](${releaseInfo.browser_download_url})` 
-          });
-          */
 
           // 全ての登録チャンネルに通知を送信
           for (const channelId of allChannelIds) {
@@ -109,20 +118,26 @@ async function handleGitHubReleases(client) {
                 await channel.send({ embeds: [embed] });
               }
             } catch (err) {
-              console.error(`チャンネル(ID: ${channelId})への送信に失敗しました:`, err.message);
+              console.error(`チャンネル(ID: ${channelId})への送信に失敗:`, err.message);
             }
           }
-
-          // DBの公開日時を新しいものに更新
-          await pluginsCollection.updateOne(
-            { owner: releaseInfo.user, repo: releaseInfo.repo },
-            { $set: { lastPublishedAt: releaseInfo.published_at } }
-          );
+        } catch (err) {
+          console.error(`リリース ${releaseInfo.user}/${releaseInfo.repo} の通知処理中にエラー:`, err);
         }
-      } catch (error) {
-        console.error(`リポジトリ ${releaseInfo.user}/${releaseInfo.repo} のチェック中にエラーが発生:`, error);
       }
+
+      // --- 7. 全ての通知が終わったら、DBのリストを最新の状態に更新 ---
+      console.log('通知が完了したため、DBのリリースリストを更新します。');
+      await appStateCollection.updateOne(
+        { _id: RELEASE_LIST_DOC_ID },
+        { $set: { data: currentList, updatedAt: new Date() } },
+        { upsert: true }
+      );
+
+    } else {
+      console.log('リリースに更新はありませんでした。');
     }
+
   } catch (error) {
     console.error('GitHubリリースのチェック処理全体でエラーが発生しました:', error);
   }

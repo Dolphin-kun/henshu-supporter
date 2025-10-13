@@ -42,6 +42,10 @@ module.exports = {
             .setRequired(true)))
     .addSubcommand(subcommand =>
       subcommand
+        .setName('饅頭遣いのおもちゃ箱_設定解除')
+        .setDescription('饅頭遣いのおもちゃ箱の最新情報の共有を解除します'))
+    .addSubcommand(subcommand =>
+      subcommand
         .setName('プラグイン更新通知チャンネル')
         .setDescription('プラグインの更新情報を共有するチャンネルを変更します')
         .addChannelOption(option =>
@@ -49,6 +53,10 @@ module.exports = {
             .setDescription('通知を送信するチャンネルを指定してください')
             .setRequired(true)
         ))
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('プラグイン更新通知チャンネル_設定解除')
+        .setDescription('プラグインの更新情報の共有を解除します'))
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   firstPage: false,
 
@@ -70,10 +78,15 @@ module.exports = {
         guildId: guildId,
         settings: {
           manjuSummonerChannel: null,
+          pluginAnnounceChannel: null,
         },
       };
       await updateGuildSettings(guildId, newConfig);
       dbData = newConfig;
+    }
+
+    if (!dbData.settings) {
+      dbData.settings = {};
     }
 
     if (interaction.options.getSubcommand() === "設定の確認") {
@@ -105,19 +118,31 @@ module.exports = {
 
       await updateGuildSettings(guildId, dbData);
 
-      await interaction.reply({ content: `データベースに保存しました`, flags: MessageFlags.Ephemeral });
+      await interaction.reply({ content: `饅頭遣いのおもちゃ箱の更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
     }
 
     if (interaction.options.getSubcommand() === "プラグイン更新通知チャンネル") {
-            const channel = interaction.options.getChannel("channel");
-            
-            if (!dbData.settings) {
-                dbData.settings = {};
-            }
-            dbData.settings.pluginAnnounceChannel = channel.id;
+      const channel = interaction.options.getChannel("channel");
 
-            await updateGuildSettings(guildId, dbData);
-            await interaction.reply({ content: `プラグイン更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
-        }
+      if (!dbData.settings) {
+        dbData.settings = {};
+      }
+      dbData.settings.pluginAnnounceChannel = channel.id;
+
+      await updateGuildSettings(guildId, dbData);
+      await interaction.reply({ content: `プラグイン更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
+    }
+
+    if (interaction.options.getSubcommand() === "饅頭遣いのおもちゃ箱_設定解除") {
+      dbData.settings.manjuSummonerChannel = null;
+      await updateGuildSettings(guildId, dbData);
+      await interaction.reply({ content: `「饅頭遣いのおもちゃ箱」の通知チャンネル設定を解除しました。`, flags: MessageFlags.Ephemeral });
+    }
+
+    if (interaction.options.getSubcommand() === "プラグイン更新通知チャンネル_設定解除") {
+      dbData.settings.pluginAnnounceChannel = null;
+      await updateGuildSettings(guildId, dbData);
+      await interaction.reply({ content: `「プラグイン更新通知チャンネル」の設定を解除しました。`, flags: MessageFlags.Ephemeral });
+    }
   }
 };
