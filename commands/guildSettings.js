@@ -6,7 +6,6 @@ const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot
 const client = new MongoClient(uri);
 
 async function getGuildSettings(guildId) {
-  await client.connect();
   const db = client.db('YMM4-Discord-Bot');
   const collection = db.collection('settings');
   const settings = await collection.findOne({ guildId });
@@ -14,7 +13,6 @@ async function getGuildSettings(guildId) {
 }
 
 async function updateGuildSettings(guildId, newSettings) {
-  await client.connect();
   const db = client.db('YMM4-Discord-Bot');
   const collection = db.collection('settings');
   await collection.updateOne(
@@ -66,9 +64,9 @@ module.exports = {
    * @param {import('discord.js').Interaction} interaction 
    */
   async execute(client, interaction) {
-    const guildId = interaction.guildId;
-    const defaultConfig = require('../guild-config.json');
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+    const guildId = interaction.guildId;
     let dbData = await getGuildSettings(guildId);
 
     // 初期設定が存在しない場合
@@ -108,7 +106,7 @@ module.exports = {
           { name: "プラグイン更新通知チャンネル", value: pluginAnnounceChannelId, inline: true }
         );
 
-      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      await interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 
     if (interaction.options.getSubcommand() === "饅頭遣いのおもちゃ箱") {
@@ -118,7 +116,7 @@ module.exports = {
 
       await updateGuildSettings(guildId, dbData);
 
-      await interaction.reply({ content: `饅頭遣いのおもちゃ箱の更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
+      await interaction.editReply({ content: `饅頭遣いのおもちゃ箱の更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
     }
 
     if (interaction.options.getSubcommand() === "プラグイン更新通知チャンネル") {
@@ -130,19 +128,19 @@ module.exports = {
       dbData.settings.pluginAnnounceChannel = channel.id;
 
       await updateGuildSettings(guildId, dbData);
-      await interaction.reply({ content: `プラグイン更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
+      await interaction.editReply({ content: `プラグイン更新通知チャンネルを <#${channel.id}> に設定しました。`, flags: MessageFlags.Ephemeral });
     }
 
     if (interaction.options.getSubcommand() === "饅頭遣いのおもちゃ箱_設定解除") {
       dbData.settings.manjuSummonerChannel = null;
       await updateGuildSettings(guildId, dbData);
-      await interaction.reply({ content: `「饅頭遣いのおもちゃ箱」の通知チャンネル設定を解除しました。`, flags: MessageFlags.Ephemeral });
+      await interaction.editReply({ content: `「饅頭遣いのおもちゃ箱」の通知チャンネル設定を解除しました。`, flags: MessageFlags.Ephemeral });
     }
 
     if (interaction.options.getSubcommand() === "プラグイン更新通知チャンネル_設定解除") {
       dbData.settings.pluginAnnounceChannel = null;
       await updateGuildSettings(guildId, dbData);
-      await interaction.reply({ content: `「プラグイン更新通知チャンネル」の設定を解除しました。`, flags: MessageFlags.Ephemeral });
+      await interaction.editReply({ content: `「プラグイン更新通知チャンネル」の設定を解除しました。`, flags: MessageFlags.Ephemeral });
     }
   }
 };

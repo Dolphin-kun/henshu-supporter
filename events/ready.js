@@ -6,6 +6,10 @@ const { handleManjuBox } = require("../utils/handleManjuBox");
 const { handleYMM4Site } = require("../utils/handleYMM4Site");
 const { handleGitHubReleases } = require("../utils/handleGitHubReleases");
 
+const { MongoClient } = require('mongodb');
+const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
+const mongoClient = new MongoClient(uri);
+
 module.exports = {
 	name: Events.ClientReady,
 	once: true,
@@ -14,6 +18,14 @@ module.exports = {
 		console.log("----------参加サーバー----------")
 		console.log(client.guilds.cache.map(guild => `${guild.name} || ${guild.memberCount}人 || ID:${guild.id}`).join("\n"))
 		console.log("------------------------------")
+
+		// MongoDB接続
+		try {
+			await mongoClient.connect();
+			console.log("MongoDBに接続しました");
+		} catch (error) {
+			console.error("MongoDBの接続に失敗しました:", error);
+		}
 
 		setInterval(async () => {
 			const memberCount = client.guilds.cache.get(config.guildId)?.memberCount ?? 0;
