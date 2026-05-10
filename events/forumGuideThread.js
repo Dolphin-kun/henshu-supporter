@@ -9,6 +9,7 @@ const config = require('../config.json');
 
 const MENU_CUSTOM_ID = 'forumGuideUploadTarget';
 const DM_OPTION_VALUE = 'dm';
+const GUIDE_WAIT_TIMEOUT_MS = 5 * 60 * 1000;
 
 const MESSAGE_LINES = [
   '原因調査のため、可能であれば問題が発生するプロジェクトファイルの共有をお願いします',
@@ -34,6 +35,39 @@ const normalizeStringArray = (value) => {
 };
 
 const buildBulletList = (lines) => lines.map((line) => `- ${line}`).join('\n');
+
+const sendGuideMessage = async (thread, payload, allowRetry = true) => {
+  try {
+    await thread.send(payload);
+  } catch (error) {
+    if (error?.code === 40058 && allowRetry) {
+      const filter = (msg) => {
+        if (msg.author?.bot) return false;
+        if (!thread.ownerId) return true;
+        return msg.author.id === thread.ownerId;
+      };
+
+      const collector = thread.createMessageCollector({
+        filter,
+        max: 1,
+        time: GUIDE_WAIT_TIMEOUT_MS,
+      });
+
+      collector.on('collect', async () => {
+        await sendGuideMessage(thread, payload, false);
+      });
+
+      collector.on('end', (collected) => {
+        if (collected.size === 0) {
+          console.warn('forumGuide: initial message not found before timeout.');
+        }
+      });
+      return;
+    }
+
+    console.error('forumGuide: failed to send guide message:', error);
+  }
+};
 
 module.exports = {
   name: Events.ThreadCreate,
@@ -98,6 +132,6 @@ module.exports = {
       components.push(new ActionRowBuilder().addComponents(selectMenu));
     }
 
-    await thread.send({ embeds: [embed], components });
+    await sendGuideMessage(thread, { embeds: [embed], components });
   },
 };
