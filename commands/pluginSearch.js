@@ -12,38 +12,58 @@ module.exports = {
     ),
 
   async execute(client, interaction) {
-    const query = interaction.options.getString('キーワード');
-    const res = await fetch('https://ymm4-info.net/api/ymm4/effects');
-    const data = await res.json();
-    const allEffects = data.effects || [];
-    const plugins = allEffects.filter(effect => 
-      (effect.displayName && effect.displayName.includes(query)) || 
-      (effect.className && effect.className.includes(query)) ||
-      (effect.category && effect.category.includes(query))
+    const query = interaction.options.getString('キーワード').toLowerCase();
+    
+    await interaction.deferReply();
+
+    let listData = [];
+    try {
+      const res = await fetch('https://manjubox.net/api/ymm4plugins/github/list');
+      listData = await res.json();
+    } catch (e) {
+      return await interaction.editReply({ content: 'プラグイン一覧の取得に失敗しました。' });
+    }
+
+    const plugins = listData.filter(plugin => 
+      (plugin.repo && plugin.repo.toLowerCase().includes(query)) ||
+      (plugin.user && plugin.user.toLowerCase().includes(query))
     );
 
     if (plugins.length === 0) {
-      return await interaction.reply({ content: 'エフェクト/プラグインが見つかりませんでした。', flags: MessageFlags.Ephemeral });
+      return await interaction.editReply({ content: 'プラグインが見つかりませんでした。' });
     }
 
     let currentPage = 0;
 
-    const getEmbed = (page) => {
+    const getEmbed = async (page) => {
       const plugin = plugins[page];
+      const repoUrl = `https://github.com/${plugin.user}/${plugin.repo}`;
       
-      const kindMap = {
-        video: "映像エフェクト",
-        audio: "音声エフェクト"
-      };
-      const kindName = kindMap[plugin.kind] || plugin.kind || "不明";
-      const docUrl = `https://ymm4-info.net/doc/effects/${encodeURIComponent(kindName)}/${encodeURIComponent(plugin.category || '')}/${encodeURIComponent(plugin.displayName || '')}`;
+      let description = '説明なし';
+      try {
+        const detailRes = await fetch(`https://manjubox.net/api/ymm4plugins/github/detail/${plugin.user}/${plugin.repo}`);
+        if (detailRes.ok) {
+          const detailData = await detailRes.json();
+          if (detailData && detailData.length > 0 && detailData[0].body) {
+            description = detailData[0].body;
+            if (description.length > 500) {
+              description = description.substring(0, 500) + '...';
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
 
       return new EmbedBuilder()
-        .setTitle(plugin.displayName ?? "名前不明")
-        .setURL(docUrl)
-        .setDescription(`[YMM4情報サイトで詳細を確認する](${docUrl})`)
+        .setTitle(plugin.repo ?? "名前不明")
+        .setURL(repoUrl)
+        .setDescription(description || '説明なし')
         .addFields(
-          { name: 'カテゴリ', value: plugin.category || '不明', inline: true }
+          { name: '作者', value: plugin.user || '不明', inline: true },
+          { name: 'バージョン', value: plugin.tag_name || '不明', inline: true },
+          { name: '更新日', value: plugin.published_at ? new Date(plugin.published_at).toLocaleDateString("ja-JP") : '不明', inline: true },
+          { name: 'ダウンロード', value: `[ダウンロード](${plugin.browser_download_url})`, inline: false }
         )
         .setFooter({ text: `ページ ${page + 1} / ${plugins.length}` });
     };
@@ -63,8 +83,9 @@ module.exports = {
       );
     };
 
-    await interaction.reply({
-      embeds: [getEmbed(currentPage)],
+    const embed = await getEmbed(currentPage);
+    await interaction.editReply({
+      embeds: [embed],
       components: [getButtons(currentPage)]
     });
     
@@ -77,11 +98,14 @@ module.exports = {
         return i.reply({ content: 'このボタンはあなた専用です。', flags: MessageFlags.Ephemeral });
       }
 
+      await i.deferUpdate();
+
       if (i.customId === 'prev' && currentPage > 0) currentPage--;
       if (i.customId === 'next' && currentPage < plugins.length - 1) currentPage++;
 
-      await i.update({
-        embeds: [getEmbed(currentPage)],
+      const updatedEmbed = await getEmbed(currentPage);
+      await i.editReply({
+        embeds: [updatedEmbed],
         components: [getButtons(currentPage)],
       });
     });
