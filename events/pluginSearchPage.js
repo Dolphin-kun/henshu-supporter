@@ -15,18 +15,22 @@ module.exports = {
     const query = message.embeds[0]?.title || null;
     if (!query) return;
 
-    const res = await fetch(`https://ymme.ymm4-info.net/api/get?q=${encodeURIComponent(query)}`);
+    const res = await fetch('https://ymm4-info.net/api/ymm4/effects');
     const data = await res.json();
-    const plugins = Object.values(data);
+    const allEffects = data.effects || [];
+    const plugins = allEffects.filter(effect => 
+      (effect.displayName && effect.displayName.includes(query)) || 
+      (effect.className && effect.className.includes(query)) ||
+      (effect.category && effect.category.includes(query))
+    );
 
     if (!plugins[newPage]) return interaction.reply({ content: '⚠️ ページが存在しません。', flags: MessageFlags.Ephemeral });
 
     const embed = new EmbedBuilder()
-      .setTitle(plugins[newPage].title)
-      .setDescription(plugins[newPage].description || "説明なし")
+      .setTitle(plugins[newPage].displayName ?? "名前不明")
+      .setDescription(`クラス名: \`${plugins[newPage].className || '不明'}\`\n種類: ${plugins[newPage].kind || '不明'}`)
       .addFields(
-        { name: "作者", value: plugins[newPage].author || "不明", inline: true },
-        { name: "公開日", value: new Date(plugins[newPage].date).toLocaleDateString("ja-JP"), inline: true }
+        { name: "カテゴリ", value: plugins[newPage].category || "不明", inline: true }
       )
       .setColor("Blue");
 

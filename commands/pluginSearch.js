@@ -13,12 +13,17 @@ module.exports = {
 
   async execute(client, interaction) {
     const query = interaction.options.getString('キーワード');
-    const res = await fetch(`https://ymme.ymm4-info.net/api/get?q=${encodeURIComponent(query)}`);
+    const res = await fetch('https://ymm4-info.net/api/ymm4/effects');
     const data = await res.json();
-    const plugins = Object.values(data);
+    const allEffects = data.effects || [];
+    const plugins = allEffects.filter(effect => 
+      (effect.displayName && effect.displayName.includes(query)) || 
+      (effect.className && effect.className.includes(query)) ||
+      (effect.category && effect.category.includes(query))
+    );
 
     if (plugins.length === 0) {
-      return await interaction.reply({ content: 'プラグインが見つかりませんでした。', flags: MessageFlags.Ephemeral });
+      return await interaction.reply({ content: 'エフェクト/プラグインが見つかりませんでした。', flags: MessageFlags.Ephemeral });
     }
 
     let currentPage = 0;
@@ -26,11 +31,10 @@ module.exports = {
     const getEmbed = (page) => {
       const plugin = plugins[page];
       return new EmbedBuilder()
-        .setTitle(plugin.title ?? "タイトル不明")
-        .setDescription(plugin.description || '説明なし')
+        .setTitle(plugin.displayName ?? "名前不明")
+        .setDescription(`クラス名: \`${plugin.className || '不明'}\`\n種類: ${plugin.kind || '不明'}`)
         .addFields(
-          { name: '作者', value: plugin.author || '不明', inline: true },
-          { name: '日付', value: plugin.date?.split('T')[0] || '不明', inline: true },
+          { name: 'カテゴリ', value: plugin.category || '不明', inline: true }
         )
         .setFooter({ text: `ページ ${page + 1} / ${plugins.length}` });
     };
