@@ -17,16 +17,59 @@ module.exports = {
     await interaction.deferReply();
 
     let listData = [];
+    let yamlMap = {};
     try {
       const res = await fetch('https://manjubox.net/api/ymm4plugins/github/list');
       listData = await res.json();
+      
+      const yamlRes = await fetch('https://manjubox.net/ymm4plugins.yml');
+      const yamlText = await yamlRes.text();
+      
+      const yamlPlugins = [];
+      let currentPlugin = null;
+      for (const line of yamlText.split('\n')) {
+        const trimmed = line.trim();
+        if (line.startsWith('- ')) {
+          currentPlugin = {};
+          yamlPlugins.push(currentPlugin);
+          const keyVal = line.substring(2).split(':');
+          if (keyVal.length >= 2) {
+            currentPlugin[keyVal[0].trim()] = keyVal.slice(1).join(':').trim();
+          }
+        } else if (line.startsWith('  ') && !line.startsWith('  -')) {
+          if (currentPlugin) {
+            const keyVal = trimmed.split(':');
+            if (keyVal.length >= 2) {
+              currentPlugin[keyVal[0].trim()] = keyVal.slice(1).join(':').trim();
+            }
+          }
+        }
+      }
+
+      for (const yp of yamlPlugins) {
+        if (yp.url) {
+          let normalizedUrl = yp.url.replace(/\/$/, '').toLowerCase();
+          yamlMap[normalizedUrl] = yp;
+        }
+      }
     } catch (e) {
       return await interaction.editReply({ content: 'プラグイン一覧の取得に失敗しました。' });
     }
 
+    for (const plugin of listData) {
+      const githubUrl = `https://github.com/${plugin.user}/${plugin.repo}`.toLowerCase();
+      const yp = yamlMap[githubUrl];
+      if (yp) {
+        plugin.yamlName = yp.name;
+        plugin.yamlDesc = yp.description;
+      }
+    }
+
     const plugins = listData.filter(plugin => 
       (plugin.repo && plugin.repo.toLowerCase().includes(query)) ||
-      (plugin.user && plugin.user.toLowerCase().includes(query))
+      (plugin.user && plugin.user.toLowerCase().includes(query)) ||
+      (plugin.yamlName && plugin.yamlName.toLowerCase().includes(query)) ||
+      (plugin.yamlDesc && plugin.yamlDesc.toLowerCase().includes(query))
     );
 
     if (plugins.length === 0) {
@@ -39,13 +82,15 @@ module.exports = {
       const plugin = plugins[page];
       const repoUrl = `https://github.com/${plugin.user}/${plugin.repo}`;
       
-      let description = '説明なし';
+      let description = plugin.yamlDesc || '説明なし';
       try {
         const detailRes = await fetch(`https://manjubox.net/api/ymm4plugins/github/detail/${plugin.user}/${plugin.repo}`);
         if (detailRes.ok) {
           const detailData = await detailRes.json();
           if (detailData && detailData.length > 0 && detailData[0].body) {
-            description = detailData[0].body;
+            description = description !== '説明なし' 
+              ? `${description}\n\n**リリースノート:**\n${detailData[0].body}`
+              : detailData[0].body;
             if (description.length > 500) {
               description = description.substring(0, 500) + '...';
             }
@@ -56,7 +101,7 @@ module.exports = {
       }
 
       return new EmbedBuilder()
-        .setTitle(plugin.repo ?? "名前不明")
+        .setTitle(plugin.yamlName ? `${plugin.yamlName} (${plugin.repo})` : plugin.repo)
         .setURL(repoUrl)
         .setDescription(description || '説明なし')
         .addFields(
