@@ -26,11 +26,20 @@ module.exports = {
 
     if (!plugins[newPage]) return interaction.reply({ content: '⚠️ ページが存在しません。', flags: MessageFlags.Ephemeral });
 
+    const plugin = plugins[newPage];
+    const kindMap = {
+      video: "映像エフェクト",
+      audio: "音声エフェクト"
+    };
+    const kindName = kindMap[plugin.kind] || plugin.kind || "不明";
+    const docUrl = `https://ymm4-info.net/doc/effects/${encodeURIComponent(kindName)}/${encodeURIComponent(plugin.category || '')}/${encodeURIComponent(plugin.displayName || '')}`;
+
     const embed = new EmbedBuilder()
-      .setTitle(plugins[newPage].displayName ?? "名前不明")
-      .setDescription(`クラス名: \`${plugins[newPage].className || '不明'}\`\n種類: ${plugins[newPage].kind || '不明'}`)
+      .setTitle(plugin.displayName ?? "名前不明")
+      .setURL(docUrl)
+      .setDescription(`[YMM4情報サイトで詳細を確認する](${docUrl})`)
       .addFields(
-        { name: "カテゴリ", value: plugins[newPage].category || "不明", inline: true }
+        { name: "カテゴリ", value: plugin.category || "不明", inline: true }
       )
       .setColor("Blue");
 

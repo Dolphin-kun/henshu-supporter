@@ -30,9 +30,18 @@ module.exports = {
 
     const getEmbed = (page) => {
       const plugin = plugins[page];
+      
+      const kindMap = {
+        video: "映像エフェクト",
+        audio: "音声エフェクト"
+      };
+      const kindName = kindMap[plugin.kind] || plugin.kind || "不明";
+      const docUrl = `https://ymm4-info.net/doc/effects/${encodeURIComponent(kindName)}/${encodeURIComponent(plugin.category || '')}/${encodeURIComponent(plugin.displayName || '')}`;
+
       return new EmbedBuilder()
         .setTitle(plugin.displayName ?? "名前不明")
-        .setDescription(`クラス名: \`${plugin.className || '不明'}\`\n種類: ${plugin.kind || '不明'}`)
+        .setURL(docUrl)
+        .setDescription(`[YMM4情報サイトで詳細を確認する](${docUrl})`)
         .addFields(
           { name: 'カテゴリ', value: plugin.category || '不明', inline: true }
         )
