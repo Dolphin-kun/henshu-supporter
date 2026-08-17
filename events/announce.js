@@ -10,10 +10,10 @@ module.exports = {
       if (message.crosspostable) {
         console.log("公開可能なメッセージをアナウンスします。");
         message.crosspost()
-          .then(() => message.react("📢"))//メッセージを公開できたらリアクションをする
+          .then(() => message.react("📢"))
           .catch(console.error);
       } else {
-        message.react("❌")//Botに権限がない場合
+        message.react("❌")
       }
     }
 	},

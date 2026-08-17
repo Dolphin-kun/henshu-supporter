@@ -1,9 +1,9 @@
 require('dotenv').config()
 
-// 環境によってはOSのDNS設定をNode.jsが正しく取得できず、
-// SRVレコード(mongodb+srv等)の解決が失敗することがあるため明示的に指定する
-const dns = require('dns');
-dns.setServers(['1.1.1.1', '8.8.8.8']);
+if (!process.env.RENDER) {
+  const dns = require('dns');
+  dns.setServers(['1.1.1.1', '8.8.8.8']);
+}
 
 const express = require('express');
 const path = require('path');

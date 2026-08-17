@@ -9,8 +9,8 @@ async function handleYMM4Site(feed, discordClient, config) {
     const db = mongo.db("YMM4-Discord-Bot");
     const siteCollection = db.collection("ymm4info");
 
-    const guild = discordClient.guilds.cache.get(config.guildId); // ← config.guildId などに置換可
-    const channel = guild?.channels.cache.get(config.YMM4SiteChannelId); // 情報サイト通知用チャンネルID
+    const guild = discordClient.guilds.cache.get(config.guildId);
+    const channel = guild?.channels.cache.get(config.YMM4SiteChannelId);
 
     for (const item of feed.items) {
       const existing = await siteCollection.findOne({ title: item.title });

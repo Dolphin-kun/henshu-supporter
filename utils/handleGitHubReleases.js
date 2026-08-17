@@ -3,16 +3,13 @@ const { EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
 const { getMongoUri } = require('./mongoClient');
 
-// MongoDB接続設定
 const mongoClient = new MongoClient(getMongoUri());
 
 const APP_STATE_COLLECTION = 'app_state';
 const RELEASE_LIST_DOC_ID = 'latest_github_release_list';
 
 /**
- * 登録されているGitHubリポジトリの最新リリースを確認し、更新があれば通知します。
- * list APIで更新を確認後、detail APIで詳細を取得します。
- * @param {import('discord.js').Client} client Discordクライアント
+ * @param {import('discord.js').Client} client 
  */
 async function handleGitHubReleases(client) {
   console.log('GitHubリリースの更新をチェックします (全プラグイン対象)...');
@@ -21,10 +18,7 @@ async function handleGitHubReleases(client) {
     const db = mongoClient.db('YMM4-Discord-Bot');
     const appStateCollection = db.collection(APP_STATE_COLLECTION);
     const settingsCollection = db.collection('settings');
-    // ▼削除: 'watched_plugins'コレクションの参照を削除
-    // const pluginsCollection = db.collection('watched_plugins'); 
 
-    // --- 1. 通知先のチャンネルを取得 ---
     const allGuildSettings = await settingsCollection.find(
       { 'settings.pluginAnnounceChannel': { $exists: true, $ne: null } }
     ).toArray();
@@ -35,7 +29,6 @@ async function handleGitHubReleases(client) {
       return;
     }
 
-    // --- 2. 現在のリリースリストをAPIから取得 ---
     const listResponse = await fetch('https://manjubox.net/api/ymm4plugins/github/list');
     if (!listResponse.ok) {
       console.error(`[Manjūbox List API] データの取得に失敗: ${listResponse.statusText}`);
@@ -43,11 +36,9 @@ async function handleGitHubReleases(client) {
     }
     const currentList = await listResponse.json();
 
-    // --- 3. 前回保存したリリースリストをDBから取得 ---
     const previousState = await appStateCollection.findOne({ _id: RELEASE_LIST_DOC_ID });
     const previousList = previousState ? previousState.data : [];
 
-    // --- 4. 初回実行時の処理 ---
     if (previousList.length === 0) {
       console.log('初回チェックのため、現在のリリースリストをDBに保存します。');
       await appStateCollection.updateOne(
@@ -58,36 +49,27 @@ async function handleGitHubReleases(client) {
       return;
     }
 
-    // --- 5. 前回と今回のリストを比較して、更新があったものを探す ---
     const updatedReleases = [];
     const previousMap = new Map(previousList.map(item => [`${item.user}/${item.repo}`, item]));
-
-    // ▼削除: 'watched_plugins'から監視リストを作成する処理を削除
-    // const watchedPlugins = await pluginsCollection.find({}).toArray();
-    // const watchedSet = new Set(watchedPlugins.map(p => `${p.owner}/${p.repo}`));
 
     for (const currentItem of currentList) {
       const repoKey = `${currentItem.user}/${currentItem.repo}`;
       
-      // ▼変更: プレリリースかどうかのみをチェックするように条件を単純化
       if (currentItem.prerelease) {
         continue;
       }
 
       const previousItem = previousMap.get(repoKey);
 
-      // 新規追加された、または公開日時が新しいリリースを更新対象とする
       if (!previousItem || new Date(currentItem.published_at) > new Date(previousItem.published_at)) {
         console.log(`更新を検出: ${repoKey} - ${currentItem.name}`);
         updatedReleases.push(currentItem);
       }
     }
     
-    // --- 6. 更新があったリリースを通知 ---
     if (updatedReleases.length > 0) {
       for (const releaseInfo of updatedReleases) {
         try {
-          // 詳細情報を取得 (リリースノート本文など)
           const detailResponse = await fetch(`https://manjubox.net/api/ymm4plugins/github/detail/${releaseInfo.user}/${releaseInfo.repo}`);
           let releaseBody = null;
           if (detailResponse.ok) {
@@ -97,7 +79,6 @@ async function handleGitHubReleases(client) {
             }
           }
 
-          // Embedを作成
           const releaseUrl = `https://github.com/${releaseInfo.user}/${releaseInfo.repo}/releases/tag/${releaseInfo.tag_name}`;
           const embed = new EmbedBuilder()
             .setColor('Blue')
@@ -110,7 +91,6 @@ async function handleGitHubReleases(client) {
             embed.addFields({ name: '概要', value: bodyText });
           }
 
-          // 全ての登録チャンネルに通知を送信
           for (const channelId of allChannelIds) {
             try {
               const channel = await client.channels.fetch(channelId);
@@ -126,7 +106,6 @@ async function handleGitHubReleases(client) {
         }
       }
 
-      // --- 7. 全ての通知が終わったら、DBのリストを最新の状態に更新 ---
       console.log('通知が完了したため、DBのリリースリストを更新します。');
       await appStateCollection.updateOne(
         { _id: RELEASE_LIST_DOC_ID },

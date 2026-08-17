@@ -2,7 +2,6 @@ const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } =
 const { MongoClient } = require('mongodb');
 const { getMongoUri } = require('../utils/mongoClient');
 
-// MongoDBの接続設定
 const client = new MongoClient(getMongoUri());
 
 async function getGuildSettings(guildId) {
@@ -69,9 +68,7 @@ module.exports = {
     const guildId = interaction.guildId;
     let dbData = await getGuildSettings(guildId);
 
-    // 初期設定が存在しない場合
     if (!dbData) {
-      // 初期設定作成
       const newConfig = {
         guildId: guildId,
         settings: {

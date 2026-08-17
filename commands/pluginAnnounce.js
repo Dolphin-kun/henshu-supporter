@@ -79,7 +79,6 @@ async function getReadmeContent(owner, repo) {
         if (!response.ok) return null;
 
         const data = await response.json();
-        // Base64でエンコードされた内容をデコードして返す
         return Buffer.from(data.content, 'base64').toString('utf8');
     } catch (error) {
         console.error(`[GitHub API] ${owner}/${repo} のREADME取得に失敗しました:`, error);
@@ -138,7 +137,6 @@ module.exports = {
                     .setFooter({ text: `ページ ${page + 1} / ${totalPages}` });
 
                 if (pagePlugins.length === 0 && page > 0) {
-                    // 削除によって現在のページが空になった場合、前のページに移動
                     currentPage--;
                     return generateMessage(currentPage);
                 }
@@ -203,7 +201,6 @@ module.exports = {
                     const success = await removePluginFromGlobalList(owner, repo);
                     if (success) {
                         await i.reply({ content: `✅ プラグイン「${selectedValue}」を削除しました。`, flags: MessageFlags.Ephemeral });
-                        // リストを再取得して更新
                         allPlugins = await getAllWatchedPlugins();
                         await interaction.editReply(generateMessage(currentPage));
                     } else {
@@ -234,18 +231,16 @@ module.exports = {
         const repo = match[2].replace(/\.git$/, '');
 
         try {
-            // --- 登録処理 ---
             if (interaction.options.getSubcommand() === '登録') {
                 const result = await addPluginAndGetInitialInfo(owner, repo);
 
                 if (result.status === 'exists') {
                     await interaction.editReply(`プラグイン「${owner}/${repo}」は既に監視リストに登録されています。`);
-                    return; // 処理を終了
+                    return;
                 }
 
                 await interaction.editReply(`プラグイン「${owner}/${repo}」を全サーバー共通の監視リストに追加しました。`);
 
-                // 初回リリース情報があれば、全チャンネルにアナウンス
                 if (result.readme) {
                     const allChannelIds = await getAnnounceChannelIds();
 
@@ -260,7 +255,6 @@ module.exports = {
                         .setDescription(descriptionText)
                         .addFields({ name: 'リポジトリ', value: `[${owner}/${repo}](${githubUrl})` })
 
-                    // 全ての通知用チャンネルに一斉送信
                     for (const channelId of allChannelIds) {
                         try {
                             const channel = await client.channels.fetch(channelId);
@@ -271,7 +265,7 @@ module.exports = {
                     }
                 }
             }
-            // --- 削除処理 ---
+            
             else if (interaction.options.getSubcommand() === '削除') {
                 const success = await removePluginFromGlobalList(owner, repo);
 
