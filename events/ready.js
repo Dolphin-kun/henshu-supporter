@@ -10,6 +10,15 @@ const { MongoClient } = require('mongodb');
 const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
 const mongoClient = new MongoClient(uri);
 
+const safeParseFeed = async (url, label) => {
+	try {
+		return await parser.parseURL(url);
+	} catch (error) {
+		console.warn(`[RSS] ${label} の取得に失敗しました: ${error.message}`);
+		return null;
+	}
+};
+
 module.exports = {
 	name: Events.ClientReady,
 	once: true,
@@ -28,17 +37,21 @@ module.exports = {
 		}
 
 		setInterval(async () => {
-			const memberCount = client.guilds.cache.get(config.guildId)?.memberCount ?? 0;
-			client.user.setActivity({
-				name: `${memberCount}人がサーバーでYMM4を堪能中`,
-				type: ActivityType.Custom,
-			});
+			try {
+				const memberCount = client.guilds.cache.get(config.guildId)?.memberCount ?? 0;
+				client.user.setActivity({
+					name: `${memberCount}人がサーバーでYMM4を堪能中`,
+					type: ActivityType.Custom,
+				});
 
-			const feedYMMSite = await parser.parseURL("https://ymm4-info.net/rss.xml");
-			const feedManjuBox = await parser.parseURL("https://manjubox.net/rss.xml");
+				const feedYMMSite = await safeParseFeed("https://ymm4-info.net/rss.xml", "YMM4 Info");
+				const feedManjuBox = await safeParseFeed("https://manjubox.net/rss.xml", "ManjuBox");
 
-			await handleYMM4Site(feedYMMSite, client, config);
-			await handleManjuBox(feedManjuBox, client, config);
+				if (feedYMMSite) await handleYMM4Site(feedYMMSite, client, config);
+				if (feedManjuBox) await handleManjuBox(feedManjuBox, client, config);
+			} catch (error) {
+				console.error("RSS定期チェック中にエラーが発生しました:", error);
+			}
 		}, 60000);
 
 		// GitHubリリースのチェック（APIレート制限を避けるため、間隔を長く設定）
