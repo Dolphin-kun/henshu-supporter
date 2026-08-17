@@ -1,9 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { MongoClient } = require('mongodb');
+const { getMongoUri } = require('../utils/mongoClient');
 
 // MongoDBの接続設定
-const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri);
+const client = new MongoClient(getMongoUri());
 
 async function getGuildSettings(guildId) {
   const db = client.db('YMM4-Discord-Bot');

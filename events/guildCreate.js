@@ -1,8 +1,8 @@
 const { Events } = require("discord.js");
 const { MongoClient } = require("mongodb");
+const { getMongoUri } = require("../utils/mongoClient");
 
-const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri);
+const client = new MongoClient(getMongoUri());
 
 module.exports = {
   name:Events.GuildCreate,

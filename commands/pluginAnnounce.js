@@ -1,9 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ComponentType, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { MongoClient } = require('mongodb');
 const fetch = require('node-fetch');
+const { getMongoUri } = require('../utils/mongoClient');
 
-const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri);
+const client = new MongoClient(getMongoUri());
 
 async function addPluginAndGetInitialInfo(owner, repo) {
     await client.connect();

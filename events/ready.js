@@ -7,8 +7,8 @@ const { handleYMM4Site } = require("../utils/handleYMM4Site");
 const { handleGitHubReleases } = require("../utils/handleGitHubReleases");
 
 const { MongoClient } = require('mongodb');
-const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
-const mongoClient = new MongoClient(uri);
+const { getMongoUri } = require('../utils/mongoClient');
+const mongoClient = new MongoClient(getMongoUri());
 
 const safeParseFeed = async (url, label) => {
 	try {

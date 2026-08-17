@@ -1,10 +1,10 @@
 const { MongoClient } = require('mongodb');
 const { EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
+const { getMongoUri } = require('./mongoClient');
 
 // MongoDB接続設定
-const uri = `mongodb+srv://YMM4-Bot:${process.env.MongoDB_Pass}@ymm4-discord-bot.5cysdgh.mongodb.net/?retryWrites=true&w=majority`;
-const mongoClient = new MongoClient(uri);
+const mongoClient = new MongoClient(getMongoUri());
 
 const APP_STATE_COLLECTION = 'app_state';
 const RELEASE_LIST_DOC_ID = 'latest_github_release_list';
