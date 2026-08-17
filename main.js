@@ -66,30 +66,4 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-client.on(Events.Debug, (info) => console.log(`[Discord Debug] ${info}`));
-client.on(Events.Warn, (info) => console.warn(`[Discord Warn] ${info}`));
-client.on(Events.Error, (error) => console.error('[Discord Error]', error));
-
-(async () => {
-	console.log('--- ネットワーク診断を開始します ---');
-	try {
-		const addresses = await require('dns').promises.resolve4('discord.com');
-		console.log('[診断] discord.com の名前解決に成功:', addresses);
-	} catch (error) {
-		console.error('[診断] discord.com の名前解決に失敗:', error.message);
-	}
-
-	try {
-		const start = Date.now();
-		const res = await fetch('https://discord.com/api/v10/gateway', { signal: AbortSignal.timeout(8000) });
-		console.log(`[診断] Discord APIへの接続に成功 (${Date.now() - start}ms) status=${res.status}`);
-	} catch (error) {
-		console.error('[診断] Discord APIへの接続に失敗:', error.message);
-	}
-	console.log('--- ネットワーク診断を終了します ---');
-
-	console.log('Discordへのログインを開始します...');
-	client.login(process.env.TOKEN)
-		.then(() => console.log('client.login() が解決しました(ゲートウェイ接続待ち)'))
-		.catch((error) => console.error('Discordへのログインに失敗しました:', error));
-})();
+client.login(process.env.TOKEN);
