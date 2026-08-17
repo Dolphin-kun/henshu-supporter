@@ -66,4 +66,11 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-client.login(process.env.TOKEN);
+client.on(Events.Debug, (info) => console.log(`[Discord Debug] ${info}`));
+client.on(Events.Warn, (info) => console.warn(`[Discord Warn] ${info}`));
+client.on(Events.Error, (error) => console.error('[Discord Error]', error));
+
+console.log('Discordへのログインを開始します...');
+client.login(process.env.TOKEN)
+	.then(() => console.log('client.login() が解決しました(ゲートウェイ接続待ち)'))
+	.catch((error) => console.error('Discordへのログインに失敗しました:', error));
